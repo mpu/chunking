@@ -1,0 +1,5 @@
+gear
+gear-simd0
+*.sw[po]
+*.o
+test-*
