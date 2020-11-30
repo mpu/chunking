@@ -84,6 +84,29 @@ chunk(char *buf, long sz)
 	_mm256_storeu_si256((__m256i*)state.fp, fp);
 }
 
+void
+chunk1(char *buf, long sz)
+{
+	long n;
+	__m256i fp, dat, tmp, match, mask8;
+
+	mask8 = _mm256_set1_epi32(0xff);
+	match = _mm256_set1_epi32(TWENTYONES);
+	fp = _mm256_loadu_si256((__m256i*)state.fp);
+
+	for (n = 0; n + 8 <= sz; n += 8) {
+		dat = _mm256_i32gather_epi32(buf,
+			_mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7), 1);
+		dat = _mm256_and_si256(dat, mask8);
+		dat = _mm256_i32gather_epi32(geartab, dat, 4);
+		fp = _mm256_slli_epi32(fp, 1);
+		fp = _mm256_add_epi32(fp, dat);
+	}
+
+	_mm256_storeu_si256((__m256i*)state.fp, fp);
+}
+
+
 #include <stdio.h>
 
 int
@@ -104,7 +127,7 @@ main(int argc, char *argv[])
 		rd &= -32;
 		if (!rd)
 			break;
-		chunk(iobuf, rd);
+		chunk1(iobuf, rd);
 	}
 	for (i = 0; i < 8; i++)
 		printf("%x\n", state.fp[i]);
