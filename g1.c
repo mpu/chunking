@@ -113,7 +113,7 @@ int
 main(int argc, char *argv[])
 {
 	static char iobuf[65536];
-	long rd;
+	long rd, tot;
 	FILE *f;
 	int i;
 
@@ -122,13 +122,24 @@ main(int argc, char *argv[])
 
 	if (!(f = fopen(argv[1], "r")))
 		return 1;
+	tot = 0;
 	for (;;) {
 		rd = fread(iobuf, 1, sizeof(iobuf), f);
-		rd &= -32;
+		tot += rd;
 		if (!rd)
 			break;
 		chunk1(iobuf, rd);
 	}
 	for (i = 0; i < 8; i++)
 		printf("%x\n", state.fp[i]);
+
+	printf("munched ");
+	if (tot / 1000000000)
+		printf("%.2fGb\n", (float)tot / 1000000000);
+	else if (tot / 1000000)
+		printf("%.2fMb\n", (float)tot / 1000000);
+	else if (tot / 1000)
+		printf("%.2fKb\n", (float)tot / 1000);
+	else
+		printf("%ldb\n", tot);
 }
