@@ -1,5 +1,4 @@
-gear
-gear-simd0
+g[0123456789]
 *.sw[po]
 *.o
 test-*
