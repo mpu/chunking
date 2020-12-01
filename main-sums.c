@@ -2,11 +2,26 @@
 #include "sha1.c"
 #include "g0.c"
 
+static char *
+strhash(unsigned char *h)
+{
+  static char s[41];
+  int i;
+
+  for (i = 0; i < 40; i += 2)
+    sprintf(&s[i], "%02x", *h++);
+  return s;
+}
+
 void
 chunkcb(char *buf, long sz)
 {
-  (void)buf;
-  printf("%ld\n", sz);
+  static unsigned char hash[20];
+  struct sha1_context ctx;
+  sha1_init(&ctx);
+  sha1_update(&ctx, buf, sz);
+  sha1_final(&ctx, hash);
+  printf("%s %ld\n", strhash(hash), sz);
 }
 
 int

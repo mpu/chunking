@@ -1,6 +1,7 @@
 #include <stdint.h>
-#include "main.c"
 #include "geartab.c"
+
+void chunkcb(char *buf, long sz);
 
 enum {
 	Maxblk = 2 << 20,
@@ -50,4 +51,10 @@ chunk(char *buf, long sz)
 	}
 	state.pos = pos;
 	state.fp = fp;
+}
+
+void finish(void)
+{
+	if (state.pos)
+		chunkdone(state.pos);
 }
