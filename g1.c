@@ -109,7 +109,7 @@ startchunk:
 		 * before:
 		 *  |0123|4567|89ab|cdef||ghij|klmn|opqr|stuv|
 		 * after the permutation:
-		 *  |0123|ghij|89ab|opqr||4567|klmn|cdef|stuv|
+		 *  |0123|89ab|ghij|opqr||4567|cdef|klmn|stuv|
 		 */
 		b0 = _mm256_permutevar8x32_epi32(b0,
 			_mm256_set_epi32(7,5,3,1,6,4,2,0));
