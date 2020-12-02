@@ -1,5 +1,7 @@
 g[0123456789]*
 *.sw[po]
 *.o
+.comfile
+tests
 test-*
 perf.*

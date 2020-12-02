@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 // #include "main.c"
 #include "geartab.c"
@@ -63,7 +64,7 @@ checkboundary(__m256i fp, long *n)
 	tmp = _mm256_cmpeq_epi32(tmp, match);
 	mask = _mm256_movemask_epi8(tmp);
 	if (__builtin_expect(mask, 0)) {
-		*n += 1 + __builtin_clz(mask) / 4;
+		*n += 1 + __builtin_ctz(mask) / 4;
 		chunkdone(state.pos + *n);
 		return 1;
 	}
@@ -100,15 +101,29 @@ startchunk:
 	for (; n + 32 <= sz; n += 32) {
                 b0 = _mm256_load_si256((__m256i*)&buf[n]);
 
-#define SHUFBYTES(a,b,c,d,e,f,g,h) \
-        _mm256_shuffle_epi8(b0, \
-                _mm256_set_epi8(a,a,a,a,b,b,b,b,c,c,c,c,d,d,d,d, \
-                                e,e,e,e,f,f,f,f,g,g,g,g,h,h,h,h))
-                b3 = SHUFBYTES(24,25,26,27,28,29,30,31);
-                b2 = SHUFBYTES(16,17,18,19,20,21,22,23);
-                b1 = SHUFBYTES(8,9,10,11,12,13,14,15);
-                b0 = SHUFBYTES(0,1,2,3,4,5,6,7);
-#undef SHUFBYTES
+		/* permute the bytes so that shuffle_epi8 only
+		 * moves data within 128bit lanes; that's
+		 * unfortunately a bit costly (Intel documents
+		 * 3 cycles of latency)
+		 *
+		 * before:
+		 *  |0123|4567|89ab|cdef||ghij|klmn|opqr|stuv|
+		 * after the permutation:
+		 *  |0123|ghij|89ab|opqr||4567|klmn|cdef|stuv|
+		 */
+		b0 = _mm256_permutevar8x32_epi32(b0,
+			_mm256_set_epi32(7,5,3,1,6,4,2,0));
+
+#define EXTRACT(i) \
+	_mm256_shuffle_epi8(b0, \
+		_mm256_set_epi32(i+3,i+2,i+1,i+0,i+3,i+2,i+1,i+0))
+
+		b3 = EXTRACT(12);
+		b2 = EXTRACT(8);
+		b1 = EXTRACT(4);
+		b0 = EXTRACT(0);
+
+#undef EXTRACT
  
 		b3 = _mm256_and_si256(b3, mask8);
 		b2 = _mm256_and_si256(b2, mask8);
@@ -156,28 +171,46 @@ startchunk:
 }
 
 void
-chunk1(char *buf, long sz)
+test()
 {
-	long n;
-	__m256i fp, dat, mask8;
-	// __m256i tmp, match;
+	struct {
+		__m256i align_;
+		char buf[64];
+	} aligned;
+	char *test = aligned.buf;
+	long l;
+	int i;
 
-	mask8 = _mm256_set1_epi32(0xff);
-	// match = _mm256_set1_epi32(TWENTYONES);
-	fp = _mm256_loadu_si256((__m256i*)state.fp);
+	srand(0);
+	for (i = 0; i < 64; i++)
+		test[i] = rand();
 
-	for (n = 0; n + 8 <= sz; n += 8) {
-		dat = _mm256_i32gather_epi32((int*)&buf[n],
-			_mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7), 1);
-		dat = _mm256_and_si256(dat, mask8);
-		dat = _mm256_i32gather_epi32((int*)geartab, dat, 4);
-		fp = _mm256_slli_epi32(fp, 1);
-		fp = _mm256_add_epi32(fp, dat);
-	}
+/* -=- */
+	memset(&state, 0, sizeof(state));
+	chunk(test, 32);
+	for (i = 0; i < 8; i++)
+		printf("fp[%d] = %08x\n", i, state.fp[i]);
+	puts("");
 
-	_mm256_storeu_si256((__m256i*)state.fp, fp);
+/* -=- */
+	l = 0;
+	memset(&state, 0, sizeof(state));
+	chunkseq(test, &l, 32);
+	for (i = 0; i < 8; i++)
+		printf("fp[%d] = %08x\n", i, state.fp[i]);
+	puts("");
+
+/* -=- */
+	l = 0;
+	memset(&state, 0, sizeof(state));
+	chunkseq(test, &l, 32);
+	for (i = 0; i < 8; i++)
+		printf("fp[%d] = %08x\n", i, state.fp[i]);
+	puts("");
+
+/* -=- */
+	memset(&state, 0, sizeof(state));
 }
-
 
 #define CHUNK chunk
 
@@ -194,11 +227,15 @@ main(int argc, char *argv[])
 	long tot;
 	int fd;
 
-	if (argc < 2)
+
+	if (argc < 2) {
+		test();
 		return 1;
+	}
 
 	if ((fd = open(argv[1], O_RDONLY)) == -1)
 		return 1;
+
 	#if 0
 	struct stat sb;
 	char *mmbuf;
