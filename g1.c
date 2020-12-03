@@ -85,7 +85,6 @@ chunk(char *buf, long sz)
 	n = 0;
 
 startchunk:
-	state.pos += n;
 	buf += n;
 	sz -= n;
 	n = 0;
