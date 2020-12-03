@@ -1,4 +1,4 @@
-static uint32_t geartab[] = {
+static int geartab[] = {
 	0x190fde8d,
 	0x2ab80f54,
 	0xcc971ee2,

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@ enum {
 
 static struct {
 	int pos;
-	uint32_t fp[8];
+	int fp[8];
 	char buf[Maxblk];
 } state;
 
@@ -34,8 +35,7 @@ chunkdone(int len)
 static int
 chunkseq(char *buf, long *n, long count)
 {
-	uint32_t *fp, cmp;
-	int idx;
+	int *fp, cmp, idx;
 
 	fp = state.fp;
 	idx = (state.pos + *n) & 7;
@@ -77,8 +77,9 @@ chunk(char *buf, long sz)
 {
 	__m256i b0, b1, b2, b3;
 	__m256i fp, mask8;
+	int perm[8];
 	long n;
-	int x;
+	int i, x;
 
 	mask8 = _mm256_set1_epi32(0xff);
 	n = 0;
@@ -89,16 +90,16 @@ startchunk:
 	n = 0;
 
 	x = (long long)buf & 31;
-	if (x) {
+	if (x > 0) {
 		if (chunkseq(buf, &n, 32 - x))
 			goto startchunk;
 	}
 
-	// FIXME not right, we might need to rotate
-	// the lanes
-	fp = _mm256_loadu_si256((__m256i*)state.fp);
+	for (i = 0; i < 8; i++)
+		perm[i] = state.fp[(state.pos + n + i) & 7];
+	fp = _mm256_loadu_si256((__m256i*)perm);
 
-	for (; n + 32 <= sz; n += 32) {
+	while (n + 32 <= sz) {
                 b0 = _mm256_load_si256((__m256i*)&buf[n]);
 
 		/* permute the bytes so that shuffle_epi8 only
@@ -132,10 +133,10 @@ startchunk:
 
 #ifndef GEARMUL
 
-		b3 = _mm256_i32gather_epi32((int*)geartab, b3, 4);
-		b2 = _mm256_i32gather_epi32((int*)geartab, b2, 4);
-		b1 = _mm256_i32gather_epi32((int*)geartab, b1, 4);
-		b0 = _mm256_i32gather_epi32((int*)geartab, b0, 4);
+		b3 = _mm256_i32gather_epi32(geartab, b3, 4);
+		b2 = _mm256_i32gather_epi32(geartab, b2, 4);
+		b1 = _mm256_i32gather_epi32(geartab, b1, 4);
+		b0 = _mm256_i32gather_epi32(geartab, b0, 4);
 #else
 		__m256i mul = _mm256_set1_epi32(GEARMUL);
 		b3 = _mm256_mul_epi32(b3, mul);
@@ -166,7 +167,16 @@ startchunk:
 
 	}
 
-	_mm256_storeu_si256((__m256i*)state.fp, fp);
+	_mm256_storeu_si256((__m256i*)perm, fp);
+	for (i = 0; i < 8; i++)
+		state.fp[(state.pos + n + i) & 7] = perm[i];
+
+	if (n < sz) {
+		if (chunkseq(buf, &n, sz - n))
+			goto startchunk;
+	}
+
+	assert(n == sz);
 	state.pos += n;
 }
 
@@ -187,7 +197,7 @@ test()
 
 /* -=- */
 	memset(&state, 0, sizeof(state));
-	chunk(test, 32);
+	chunk(test+2, 30+32+4);
 	for (i = 0; i < 8; i++)
 		printf("fp[%d] = %08x\n", i, state.fp[i]);
 	puts("");
@@ -195,15 +205,7 @@ test()
 /* -=- */
 	l = 0;
 	memset(&state, 0, sizeof(state));
-	chunkseq(test, &l, 32);
-	for (i = 0; i < 8; i++)
-		printf("fp[%d] = %08x\n", i, state.fp[i]);
-	puts("");
-
-/* -=- */
-	l = 0;
-	memset(&state, 0, sizeof(state));
-	chunkseq(test, &l, 32);
+	chunkseq(test+2, &l, 30+32+4);
 	for (i = 0; i < 8; i++)
 		printf("fp[%d] = %08x\n", i, state.fp[i]);
 	puts("");
@@ -254,7 +256,7 @@ main(int argc, char *argv[])
 		tot += rd;
 		if (!rd)
 			break;
-		CHUNK(iobuf+1, rd-1);
+		CHUNK(iobuf, rd);
 	}
 	#endif
 
