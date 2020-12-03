@@ -85,6 +85,7 @@ chunk(char *buf, long sz)
 	n = 0;
 
 startchunk:
+	state.pos += n;
 	buf += n;
 	sz -= n;
 	n = 0;
@@ -103,9 +104,8 @@ startchunk:
                 b0 = _mm256_load_si256((__m256i*)&buf[n]);
 
 		/* permute the bytes so that shuffle_epi8 only
-		 * moves data within 128bit lanes; that's
-		 * unfortunately a bit costly (Intel documents
-		 * 3 cycles of latency)
+		 * moves data within 128bit lanes; that's a bit
+		 * costly (Intel documents 3 cycles of latency)
 		 *
 		 * before:
 		 *  |0123|4567|89ab|cdef||ghij|klmn|opqr|stuv|
@@ -119,6 +119,15 @@ startchunk:
 	_mm256_shuffle_epi8(b0, \
 		_mm256_set_epi32(i+3,i+2,i+1,i+0,i+3,i+2,i+1,i+0))
 
+		/* move each of the 32 bytes into a 32 bit
+		 * word of b0,b1,b2,b3
+		 * 
+		 * after:
+		 *  b0: |0___|1___|2___|3___||4___|5___|6___|7___|
+		 *  b1: |8___|9___|a___|b___||c___|d___|e___|f___|
+		 *  b2: |g___|h___|i___|j___||k___|l___|m___|n___|
+		 *  b3: |o___|p___|q___|r___||s___|t___|u___|v___|
+		 */
 		b3 = EXTRACT(12);
 		b2 = EXTRACT(8);
 		b1 = EXTRACT(4);
@@ -164,7 +173,6 @@ startchunk:
 		fp = _mm256_add_epi32(fp, b3);
 		if (checkboundary(fp, &n))
 			goto startchunk;
-
 	}
 
 	_mm256_storeu_si256((__m256i*)perm, fp);
