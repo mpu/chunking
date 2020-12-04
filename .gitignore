@@ -1,4 +1,5 @@
 g[0123456789]*
+sums
 *.sw[po]
 *.o
 .comfile
@@ -6,3 +7,4 @@ tests
 test-*
 perf.*
 bench/linux
+bench/rand
