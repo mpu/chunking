@@ -1,5 +1,19 @@
-all:
-	cc -O2 -Wall -Wextra -std=c11 sums.c -o sums
-	cc -O3 -Wall -Wextra -std=c11 main.c -o g0
-	cc -O3 -Wall -Wextra -std=c11 main-sums.c -o g0-sums
-	cc -O3 -Wall -Wextra -std=c11 -mavx2 g1.c -o g1
+CFLAGS += -Wall -Wextra -std=c11
+
+BIN = g0 g1 sums
+
+all: $(BIN)
+
+clean:
+	rm -f $(BIN)
+
+g0: g0.c
+	$(CC) $(CFLAGS) -O3 $< -o $@
+
+g1: g1.c
+	$(CC) $(CFLAGS) -O3 -mavx2 $< -o $@
+
+sums: sums.c
+	$(CC) $(CFLAGS) -O2 $< -o $@
+
+.PHONY: all clean

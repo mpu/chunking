@@ -1,10 +1,11 @@
 #include <stdint.h>
+#include <stdio.h>
 #include "geartab.c"
 
 void chunkcb(char *buf, long sz);
 
 enum {
-	Maxblk = 2 << 20,
+	Maxblk = 3 << 20,
 	Avgblk = 1 << 20,
 };
 
@@ -57,4 +58,33 @@ void finish(void)
 {
 	if (state.pos)
 		chunkdone(state.pos);
+}
+
+void
+chunkcb(char *buf, long sz)
+{
+	(void)buf;
+	printf("%ld\n", sz);
+}
+
+int
+main(int argc, char *argv[])
+{
+	static char iobuf[65536];
+	long rd;
+	FILE *f;
+
+	if (argc < 2)
+		return 1;
+
+	if (!(f = fopen(argv[1], "r")))
+		return 1;
+	for (;;) {
+		rd = fread(iobuf, 1, sizeof(iobuf), f);
+		if (!rd)
+			break;
+		chunk(iobuf, rd);
+	}
+	finish();
+	return 0;
 }
