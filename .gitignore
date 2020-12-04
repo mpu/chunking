@@ -5,3 +5,4 @@ g[0123456789]*
 tests
 test-*
 perf.*
+bench/linux
