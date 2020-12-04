@@ -3,8 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// #include "main.c"
-#include "geartab.c"
+#include "geartab.h"
 
 enum {
 	Maxblk = 3 << 20,

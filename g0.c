@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
-#include "geartab.c"
+#include "geartab.h"
 
 void chunkcb(char *buf, long sz);
 
