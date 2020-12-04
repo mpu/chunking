@@ -1,4 +1,4 @@
-/*% cc -O3 -Wall -mavx2 % -o tests
+/*% cc -O3 -Wall -mavx2 % -o simd-tests
  */
 #include <stdio.h>
 #include <stdint.h>

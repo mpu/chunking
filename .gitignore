@@ -1,10 +1,11 @@
 g[0123456789]*
 sums
+simd-tests
+
+bench/linux
+bench/rand
+
 *.sw[po]
 *.o
 .comfile
-tests
-test-*
 perf.*
-bench/linux
-bench/rand
