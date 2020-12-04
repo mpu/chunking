@@ -7,7 +7,7 @@
 #include "geartab.c"
 
 enum {
-	Maxblk = 2 << 20,
+	Maxblk = 3 << 20,
 	Avgblk = 1 << 20,
 };
 
@@ -30,7 +30,6 @@ chunkdone(int len)
 #include <immintrin.h>
 
 #define TWENTYONES 0xfffff000
-// #define GEARMUL 0xc7810b1b
 
 static int
 chunkseq(char *buf, long *n, long count)
@@ -77,7 +76,7 @@ chunk(char *buf, long sz)
 {
 	__m256i b0, b1, b2, b3;
 	__m256i fp, mask8;
-	int perm[8];
+	int perm[8], max;
 	long n;
 	int i, x;
 
@@ -89,8 +88,12 @@ startchunk:
 	sz -= n;
 	n = 0;
 
+	max = sz;
+	if (state.pos + max > Maxblk)
+		max = Maxblk - state.pos;
+
 	x = (long long)buf & 31;
-	if (x > 0) {
+	if (max >= 31 && x > 0) {
 		if (chunkseq(buf, &n, 32 - x))
 			goto startchunk;
 	}
@@ -99,7 +102,7 @@ startchunk:
 		perm[i] = state.fp[(state.pos + n + i) & 7];
 	fp = _mm256_loadu_si256((__m256i*)perm);
 
-	while (n + 32 <= sz) {
+	while (n + 32 <= max) {
                 b0 = _mm256_load_si256((__m256i*)&buf[n]);
 
 		/* permute the bytes so that shuffle_epi8 only
@@ -139,19 +142,10 @@ startchunk:
 		b1 = _mm256_and_si256(b1, mask8);
 		b0 = _mm256_and_si256(b0, mask8);
 
-#ifndef GEARMUL
-
 		b3 = _mm256_i32gather_epi32(geartab, b3, 4);
 		b2 = _mm256_i32gather_epi32(geartab, b2, 4);
 		b1 = _mm256_i32gather_epi32(geartab, b1, 4);
 		b0 = _mm256_i32gather_epi32(geartab, b0, 4);
-#else
-		__m256i mul = _mm256_set1_epi32(GEARMUL);
-		b3 = _mm256_mul_epi32(b3, mul);
-		b2 = _mm256_mul_epi32(b2, mul);
-		b1 = _mm256_mul_epi32(b1, mul);
-		b0 = _mm256_mul_epi32(b0, mul);
-#endif
 
 		fp = _mm256_slli_epi32(fp, 1);
 		fp = _mm256_add_epi32(fp, b0);
@@ -178,13 +172,18 @@ startchunk:
 	for (i = 0; i < 8; i++)
 		state.fp[(state.pos + n + i) & 7] = perm[i];
 
-	if (n < sz) {
-		if (chunkseq(buf, &n, sz - n))
+	if (n < max) {
+		if (chunkseq(buf, &n, max - n))
 			goto startchunk;
 	}
 
-	assert(n == sz);
+	assert(n == max);
 	state.pos += n;
+
+	if (max != sz) {
+		chunkdone(state.pos);
+		goto startchunk;
+	}
 }
 
 void
@@ -204,7 +203,7 @@ test()
 
 /* -=- */
 	memset(&state, 0, sizeof(state));
-	chunk(test+2, 30+32+4);
+	chunk(test+1, 32);
 	for (i = 0; i < 8; i++)
 		printf("fp[%d] = %08x\n", i, state.fp[i]);
 	puts("");
@@ -212,7 +211,7 @@ test()
 /* -=- */
 	l = 0;
 	memset(&state, 0, sizeof(state));
-	chunkseq(test+2, &l, 30+32+4);
+	chunkseq(test+1, &l, 32);
 	for (i = 0; i < 8; i++)
 		printf("fp[%d] = %08x\n", i, state.fp[i]);
 	puts("");
@@ -229,6 +228,20 @@ test()
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+void
+chunkcb(char *buf, long len)
+{
+	(void)buf;
+	printf("%ld\n", len);
+}
+
+void
+finish()
+{
+	if (state.pos)
+		printf("%d\n", state.pos);
+}
 
 int
 main(int argc, char *argv[])
@@ -267,6 +280,8 @@ main(int argc, char *argv[])
 	}
 	#endif
 
+	finish();
+
 	fprintf(stderr, "munched ");
 	if (tot / 1000000000)
 		fprintf(stderr, "%.2fGb\n", (float)tot / 1000000000);
@@ -276,11 +291,4 @@ main(int argc, char *argv[])
 		fprintf(stderr, "%.2fKb\n", (float)tot / 1000);
 	else
 		fprintf(stderr, "%ldb\n", tot);
-}
-
-void
-chunkcb(char *buf, long len)
-{
-	(void)buf;
-	printf("%ld\n", len);
 }
