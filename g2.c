@@ -5,7 +5,7 @@
 void chunkcb(long);
 
 struct {
-	uint32_t fp[8];
+	uint32_t fp[4];
 	long pos;
 } state;
 
@@ -49,7 +49,7 @@ startblock:
 	sz -= n;
 	n = 0;
 
-	switch ((state.pos + n) & 7) {
+	switch ((state.pos + n) & 3) {
 	while (n + 8 < sz) {
 	case 0:
 		gear(fp+0, buf[n++] & 0xff);
@@ -69,26 +69,6 @@ startblock:
 	case 3:
 		gear(fp+3, buf[n++] & 0xff);
 		if (check(fp[3], n))
-			goto startblock;
-		/* fallthrough */
-	case 4:
-		gear(fp+4, buf[n++] & 0xff);
-		if (check(fp[4], n))
-			goto startblock;
-		/* fallthrough */
-	case 5:
-		gear(fp+5, buf[n++] & 0xff);
-		if (check(fp[5], n))
-			goto startblock;
-		/* fallthrough */
-	case 6:
-		gear(fp+6, buf[n++] & 0xff);
-		if (check(fp[6], n))
-			goto startblock;
-		/* fallthrough */
-	case 7:
-		gear(fp+7, buf[n++] & 0xff);
-		if (check(fp[7], n))
 			goto startblock;
 		/* fallthrough */
 	}
