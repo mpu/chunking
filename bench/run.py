@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import os
 import sys
 import subprocess as sp
@@ -11,14 +12,16 @@ def mkdir(d):
   except FileExistsError:
     pass
 
-def run(category):
+def run(args):
+  category = args.category
   if category[-1] == '/':
     category = category[0:-1]
   results = {}
   catd = os.path.join('bench', 'results', os.path.basename(category))
   for chunker in CHUNKERS:
     resd = os.path.join(catd, chunker)
-    if False:
+    allf = os.path.join(resd, 'all.sums')
+    if args.f or not os.path.exists(allf):
       sp.run(f'rm -fr {resd}/*', shell=True).check_returncode()
       mkdir(resd)
       for file in os.listdir(category):
@@ -28,7 +31,6 @@ def run(category):
         print(f'running {chunker} on {datf}')
         sp.run(f'./{chunker} {datf} > {resf}', shell=True).check_returncode()
         sp.run(f'./sums {resf} {datf} > {sumf}', shell=True).check_returncode()
-    allf = os.path.join(resd, 'all.sums')
     sp.run(f'cat {resd}/*.sums | sort | uniq -c > {allf}', shell=True).check_returncode()
 
     print(f"processing results for {chunker}...")
@@ -65,13 +67,17 @@ def run(category):
         resf.write(f'  {stat}: {value}\n')
 
 def usage():
-  print('usage: bench/run.py run bench/category')
+  print('usage: bench/run.py [ run ] ARGS')
   exit(1)
 
 if __name__ == '__main__':
-  if len(sys.argv) < 3:
+  if len(sys.argv) < 2:
     usage()
   if sys.argv[1] == 'run':
-    run(sys.argv[2])
+    ap = argparse.ArgumentParser(prog='bench/run.py run')
+    ap.add_argument('-f', action='store_true')
+    ap.add_argument('category')
+    args = ap.parse_args(sys.argv[2:])
+    run(args)
   else:
     print(f'unknown command {sys.argv[1]}')

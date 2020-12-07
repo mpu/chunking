@@ -73,7 +73,7 @@ def mktars(args):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
-    description='mkbench - synthesizes dedup benchmark',
+    description='gen - synthesizes dedup benchmark',
     usage="""
       -- Linux source tree benchmark --
 
@@ -87,8 +87,8 @@ if __name__ == '__main__':
       commits.
 
       Example use:
-        ./mkbench.py --out schedule.txt --linux=../linux schedule
-        ./mkbench.py --out bench/linux --schedule schedule.txt mktars
+        gen.py --out schedule.txt --linux=../linux schedule
+        gen.py --out bench/linux --schedule schedule.txt mktars
     """)
   parser.add_argument('--linux', default='../linux')
   parser.add_argument('--months', default=3, type=int)

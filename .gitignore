@@ -4,6 +4,7 @@ simd-tests
 
 bench/linux
 bench/rand
+bench/results
 
 *.sw[po]
 *.o
