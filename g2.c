@@ -38,10 +38,8 @@ check(uint32_t fp, long n)
 void
 chunk(char *buf, long sz)
 {
-	uint32_t *fp;
+	uint32_t fp0, fp1, fp2, fp3;
 	long n;
-
-	fp = state.fp;
 
 if (0) {
 startblock0:
@@ -64,32 +62,42 @@ startblock3:
 	sz -= n + 3;
 }
 
+	fp0 = state.fp[0];
+	fp1 = state.fp[1];
+	fp2 = state.fp[2];
+	fp3 = state.fp[3];
 	n = 0;
+
 	switch (state.pos & 3) {
 	for (; n + 4 <= sz; n += 4) {
 	case 0:
-		gear(fp+0, buf[n+0] & 0xff);
+		gear(&fp0, buf[n+0] & 0xff);
 		/* fallthrough */
 	case 1:
-		gear(fp+1, buf[n+1] & 0xff);
+		gear(&fp1, buf[n+1] & 0xff);
 		/* fallthrough */
 	case 2:
-		gear(fp+2, buf[n+2] & 0xff);
+		gear(&fp2, buf[n+2] & 0xff);
 		/* fallthrough */
 	case 3:
-		gear(fp+3, buf[n+3] & 0xff);
+		gear(&fp3, buf[n+3] & 0xff);
 
-		if (check(fp[0], n+0))
+		if (check(fp0, n+0))
 			goto startblock0;
-		if (check(fp[1], n+1))
+		if (check(fp1, n+1))
 			goto startblock1;
-		if (check(fp[2], n+2))
+		if (check(fp2, n+2))
 			goto startblock2;
-		if (check(fp[3], n+3))
+		if (check(fp3, n+3))
 			goto startblock3;
 		/* fallthrough */
 	}
 	}
+
+	state.fp[0] = fp0;
+	state.fp[1] = fp1;
+	state.fp[2] = fp2;
+	state.fp[3] = fp3;
 
 	state.pos += n;
 }
