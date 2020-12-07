@@ -266,7 +266,7 @@ main(int argc, char *argv[])
 	tot = sb.st_size;
 	CHUNK(mmbuf, tot);
 	#else
-	static char iobuf[1 << 17];
+	static char iobuf[65536];
 	long rd;
 
 	tot = 0;

@@ -1,5 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "geartab.h"
 
 void chunkcb(char *buf, long sz);
@@ -72,15 +76,15 @@ main(int argc, char *argv[])
 {
 	static char iobuf[65536];
 	long rd;
-	FILE *f;
+	int fd;
 
 	if (argc < 2)
 		return 1;
 
-	if (!(f = fopen(argv[1], "r")))
+	if ((fd = open(argv[1], O_RDONLY)) == -1)
 		return 1;
 	for (;;) {
-		rd = fread(iobuf, 1, sizeof(iobuf), f);
+		rd = read(fd, iobuf, sizeof(iobuf));
 		if (!rd)
 			break;
 		chunk(iobuf, rd);
