@@ -42,37 +42,56 @@ chunk(char *buf, long sz)
 	long n;
 
 	fp = state.fp;
-	n = 0;
 
-startblock:
+if (0) {
+startblock0:
 	buf += n;
 	sz -= n;
-	n = 0;
+}
+if (0) {
+startblock1:
+	buf += n + 1;
+	sz -= n + 1;
+}
+if (0) {
+startblock2:
+	buf += n + 2;
+	sz -= n + 2;
+}
+if (0) {
+startblock3:
+	buf += n + 3;
+	sz -= n + 3;
+}
 
-	switch ((state.pos + n) & 3) {
-	while (n + 8 < sz) {
+	n = 0;
+	switch (state.pos & 3) {
+	for (; n + 4 <= sz; n += 4) {
 	case 0:
-		gear(fp+0, buf[n++] & 0xff);
-		if (check(fp[0], n))
-			goto startblock;
+		gear(fp+0, buf[n+0] & 0xff);
 		/* fallthrough */
 	case 1:
-		gear(fp+1, buf[n++] & 0xff);
-		if (check(fp[1], n))
-			goto startblock;
+		gear(fp+1, buf[n+1] & 0xff);
 		/* fallthrough */
 	case 2:
-		gear(fp+2, buf[n++] & 0xff);
-		if (check(fp[2], n))
-			goto startblock;
+		gear(fp+2, buf[n+2] & 0xff);
 		/* fallthrough */
 	case 3:
-		gear(fp+3, buf[n++] & 0xff);
-		if (check(fp[3], n))
-			goto startblock;
+		gear(fp+3, buf[n+3] & 0xff);
+
+		if (check(fp[0], n+0))
+			goto startblock0;
+		if (check(fp[1], n+1))
+			goto startblock1;
+		if (check(fp[2], n+2))
+			goto startblock2;
+		if (check(fp[3], n+3))
+			goto startblock3;
 		/* fallthrough */
 	}
 	}
+
+	state.pos += n;
 }
 
 #include <fcntl.h>
