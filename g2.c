@@ -15,10 +15,10 @@ enum {
 };
 
 inline __attribute__((always_inline))
-void
-gear(uint32_t *fp, int b)
+uint32_t
+gear(uint32_t fp, int b)
 {
-	*fp = (*fp << 1) + GearA + (uint32_t)b * GearM;
+	return (fp << 1) + GearA + (uint32_t)b * GearM;
 }
 
 #define TWENTYONES 0xfffff000
@@ -41,27 +41,7 @@ chunk(char *buf, long sz)
 	uint32_t fp0, fp1, fp2, fp3;
 	long n;
 
-if (0) {
-startblock0:
-	buf += n;
-	sz -= n;
-}
-if (0) {
-startblock1:
-	buf += n + 1;
-	sz -= n + 1;
-}
-if (0) {
-startblock2:
-	buf += n + 2;
-	sz -= n + 2;
-}
-if (0) {
-startblock3:
-	buf += n + 3;
-	sz -= n + 3;
-}
-
+startblock:
 	fp0 = state.fp[0];
 	fp1 = state.fp[1];
 	fp2 = state.fp[2];
@@ -71,35 +51,46 @@ startblock3:
 	switch (state.pos & 3) {
 	for (; n + 4 <= sz; n += 4) {
 	case 0:
-		gear(&fp0, buf[n+0] & 0xff);
+		fp0 = gear(fp0, buf[n+0] & 0xff);
 		/* fallthrough */
 	case 1:
-		gear(&fp1, buf[n+1] & 0xff);
+		fp1 = gear(fp1, buf[n+1] & 0xff);
 		/* fallthrough */
 	case 2:
-		gear(&fp2, buf[n+2] & 0xff);
+		fp2 = gear(fp2, buf[n+2] & 0xff);
 		/* fallthrough */
 	case 3:
-		gear(&fp3, buf[n+3] & 0xff);
+		fp3 = gear(fp3, buf[n+3] & 0xff);
 
-		if (check(fp0, n+0))
-			goto startblock0;
-		if (check(fp1, n+1))
-			goto startblock1;
-		if (check(fp2, n+2))
-			goto startblock2;
-		if (check(fp3, n+3))
-			goto startblock3;
+		if (check(fp0, n+0)) {
+			buf += n+0;
+			sz -= n+0;
+			goto startblock;
+		}
+		if (check(fp1, n+1)) {
+			buf += n+1;
+			sz -= n+1;
+			goto startblock;
+		}
+		if (check(fp2, n+2)) {
+			buf += n+2;
+			sz -= n+2;
+			goto startblock;
+		}
+		if (check(fp3, n+3)) {
+			buf += n+3;
+			sz -= n+3;
+			goto startblock;
+		}
 		/* fallthrough */
 	}
 	}
 
+	state.pos += n;
 	state.fp[0] = fp0;
 	state.fp[1] = fp1;
 	state.fp[2] = fp2;
 	state.fp[3] = fp3;
-
-	state.pos += n;
 }
 
 #include <fcntl.h>
