@@ -62,24 +62,24 @@ startblock:
 	case 3:
 		fp3 = gear(fp3, buf[n+3] & 0xff);
 
-		if (check(fp0, n+0)) {
-			buf += n+0;
-			sz -= n+0;
-			goto startblock;
-		}
-		if (check(fp1, n+1)) {
+		if (check(fp0, n+1)) {
 			buf += n+1;
 			sz -= n+1;
 			goto startblock;
 		}
-		if (check(fp2, n+2)) {
+		if (check(fp1, n+2)) {
 			buf += n+2;
 			sz -= n+2;
 			goto startblock;
 		}
-		if (check(fp3, n+3)) {
+		if (check(fp2, n+3)) {
 			buf += n+3;
 			sz -= n+3;
+			goto startblock;
+		}
+		if (check(fp3, n+4)) {
+			buf += n+4;
+			sz -= n+4;
 			goto startblock;
 		}
 		/* fallthrough */
