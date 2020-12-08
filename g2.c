@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,57 +41,67 @@ chunk(char *buf, long sz)
 {
 	uint32_t fp0, fp1, fp2, fp3;
 	long n;
+	int i;
 
 startblock:
 	fp0 = state.fp[0];
 	fp1 = state.fp[1];
 	fp2 = state.fp[2];
 	fp3 = state.fp[3];
-	n = 0;
+	n = - (state.pos & 3);
 
-	switch (state.pos & 3) {
-	for (; n + 4 <= sz; n += 4) {
-	case 0:
-		fp0 = gear(fp0, buf[n+0] & 0xff);
-		/* fallthrough */
-	case 1:
-		fp1 = gear(fp1, buf[n+1] & 0xff);
-		/* fallthrough */
-	case 2:
-		fp2 = gear(fp2, buf[n+2] & 0xff);
-		/* fallthrough */
-	case 3:
-		fp3 = gear(fp3, buf[n+3] & 0xff);
+	if (n + 4 > sz)
+		n = 0;
+	else
+		switch (-n) {
+		for (; n + 4 <= sz; n += 4) {
+		case 0:
+			fp0 = gear(fp0, buf[n+0] & 0xff);
+			/* fallthrough */
+		case 1:
+			fp1 = gear(fp1, buf[n+1] & 0xff);
+			/* fallthrough */
+		case 2:
+			fp2 = gear(fp2, buf[n+2] & 0xff);
+			/* fallthrough */
+		case 3:
+			fp3 = gear(fp3, buf[n+3] & 0xff);
 
-		if (check(fp0, n+1)) {
-			buf += n+1;
-			sz -= n+1;
-			goto startblock;
+			if (check(fp0, n+1)) {
+				buf += n+1;
+				sz -= n+1;
+				goto startblock;
+			}
+			if (check(fp1, n+2)) {
+				buf += n+2;
+				sz -= n+2;
+				goto startblock;
+			}
+			if (check(fp2, n+3)) {
+				buf += n+3;
+				sz -= n+3;
+				goto startblock;
+			}
+			if (check(fp3, n+4)) {
+				buf += n+4;
+				sz -= n+4;
+				goto startblock;
+			}
+			/* fallthrough */
 		}
-		if (check(fp1, n+2)) {
-			buf += n+2;
-			sz -= n+2;
-			goto startblock;
 		}
-		if (check(fp2, n+3)) {
-			buf += n+3;
-			sz -= n+3;
-			goto startblock;
-		}
-		if (check(fp3, n+4)) {
-			buf += n+4;
-			sz -= n+4;
-			goto startblock;
-		}
-		/* fallthrough */
-	}
-	}
 
-	state.pos += n;
 	state.fp[0] = fp0;
 	state.fp[1] = fp1;
 	state.fp[2] = fp2;
 	state.fp[3] = fp3;
+
+	i = state.pos & 3;
+	for (; n != sz; n++) {
+		state.fp[i] = gear(state.fp[i], buf[n] & 0xff);
+		i = (i + 1) & 3;
+	}
+	state.pos += n;
 }
 
 #include <fcntl.h>
