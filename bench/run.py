@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess as sp
 
-CHUNKERS = ['g0', 'g1']
+CHUNKERS = ['ts', 'g0', 'g1', 'g2']
 
 def mkdir(d):
   try:
