@@ -5,30 +5,29 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "geartab.h"
+#include "log2.h"
 
-void chunkcb(char *buf, long sz);
+void chunkcb(long sz);
 
 enum {
-	Maxblk = 3 << 20,
-	Avgblk = 1 << 20,
+	GearM = 0xc7810b1b,
+	GearA = 0x4e39afed,
 };
 
 static struct {
 	int pos;
 	uint32_t fp;
-	char buf[Maxblk];
 } state;
 
 static void
 chunkdone(int len)
 {
-	chunkcb(state.buf, len);
+	chunkcb(len);
 	state.pos = 0;
 	state.fp = 0;
 }
 
-/* relates to Avgblk */
-#define TWENTYONES 0xfffff000
+#define MASK ((1u << LOG2_32(AVGBLK)) - 1)
 
 void
 chunk(char *buf, long sz)
@@ -40,15 +39,15 @@ chunk(char *buf, long sz)
 	fp = state.fp;
 	pos = state.pos;
 	for (n = 0; n <  sz; n++) {
-		if (pos == Maxblk) {
+		if (pos == MAXBLK) {
 			chunkdone(pos);
 			pos = 0;
 			fp = 0;
 		}
 		fp = (fp << 1) + geartab[buf[n] & 0xff];
-		// state.buf[pos] = buf[n];
+		// fp = (fp << 1) + GearA + GearM * (buf[n] & 0xff);
 		pos++;
-		if ((fp & TWENTYONES) == TWENTYONES) {
+		if ((fp & MASK) == MASK) {
 			chunkdone(pos);
 			pos = 0;
 			fp = 0;
@@ -65,9 +64,8 @@ void finish(void)
 }
 
 void
-chunkcb(char *buf, long sz)
+chunkcb(long sz)
 {
-	(void)buf;
 	printf("%ld\n", sz);
 }
 

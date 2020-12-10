@@ -405,11 +405,6 @@ endofchunk:
 	return (0);
 }
 
-enum {
-	Maxblk = 3 << 20,
-	Avgblk = 1 << 20,
-};
-
 void
 chunkdone(long n)
 {
@@ -438,7 +433,7 @@ main(int argc, char *argv[])
 		return 1;
 
 	srand(0);
-	chunker = chunkinit(Avgblk, Maxblk);
+	chunker = chunkinit(AVGBLK, MAXBLK);
 
 	tot = 0;
 	for (;;) {

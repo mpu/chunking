@@ -2,6 +2,11 @@ CFLAGS += -Wall -Wextra -std=c11
 
 BIN = g0 g1 g2 ts sums
 
+AVG = (1 << 20)
+MAX = (3 << 20)
+
+CFLAGS += -D"AVGBLK=$(AVG)" -D"MAXBLK=$(MAX)"
+
 all: $(BIN)
 
 clean:

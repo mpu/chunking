@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "log2.h"
 
 void chunkcb(long);
 
@@ -22,13 +23,13 @@ gear(uint32_t fp, int b)
 	return (fp << 1) + GearA + (uint32_t)b * GearM;
 }
 
-#define TWENTYONES 0xfffff000
+#define MASK ((1u << LOG2_32(AVGBLK)) - 1)
 
 inline __attribute__((always_inline))
 int
 check(uint32_t fp, long n)
 {
-	if (__builtin_expect((fp & TWENTYONES) == TWENTYONES, 0)) {
+	if (__builtin_expect((fp & MASK) == MASK, 0)) {
 		chunkcb(state.pos + n);
 		memset(&state, 0, sizeof(state));
 		return 1;

@@ -4,16 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "geartab.h"
-
-enum {
-	Maxblk = 3 << 20,
-	Avgblk = 1 << 20,
-};
+#include "log2.h"
 
 static struct {
 	int pos;
 	int fp[8];
-	char buf[Maxblk];
+	char buf[MAXBLK];
 } state;
 
 void chunkcb(char *, long);
@@ -28,7 +24,7 @@ chunkdone(int len)
 
 #include <immintrin.h>
 
-#define TWENTYONES 0xfffff000
+#define MASK ((1u << LOG2_32(AVGBLK)) - 1)
 
 static int
 chunkseq(char *buf, long *n, long count)
@@ -40,7 +36,7 @@ chunkseq(char *buf, long *n, long count)
 	for (; count > 0; count--) {
 		fp[idx] <<= 1;
 		fp[idx] += geartab[buf[(*n)++] & 0xff];
-		cmp = (fp[idx] & TWENTYONES) == TWENTYONES;
+		cmp = (fp[idx] & MASK) == MASK;
 		if (__builtin_expect(cmp, 0)) {
 			chunkdone(state.pos + *n);
 			return 1;
@@ -57,7 +53,7 @@ checkboundary(__m256i fp, long *n)
 	__m256i tmp, match;
 	int mask;
 
-	match = _mm256_set1_epi32(TWENTYONES);
+	match = _mm256_set1_epi32(MASK);
 	tmp = _mm256_and_si256(fp, match);
 	tmp = _mm256_cmpeq_epi32(tmp, match);
 	mask = _mm256_movemask_epi8(tmp);
@@ -88,8 +84,8 @@ startchunk:
 	n = 0;
 
 	max = sz;
-	if (state.pos + max > Maxblk)
-		max = Maxblk - state.pos;
+	if (state.pos + max > MAXBLK)
+		max = MAXBLK - state.pos;
 
 	x = (long long)buf & 31;
 	if (max >= 31 && x > 0) {
@@ -180,6 +176,7 @@ startchunk:
 	state.pos += n;
 
 	if (max != sz) {
+		// BUG in case max == sz accidentally
 		chunkdone(state.pos);
 		goto startchunk;
 	}
