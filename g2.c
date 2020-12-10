@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "geartab.h"
 #include "log2.h"
 
 void chunkcb(long);
@@ -17,10 +18,11 @@ enum {
 };
 
 inline __attribute__((always_inline))
-uint32_t
+static uint32_t
 gear(uint32_t fp, int b)
 {
-	return (fp << 1) + GearA + (uint32_t)b * GearM;
+	// return (fp << 1) + GearA + (uint32_t)b * GearM;
+	return (fp << 1) + geartab[b];
 }
 
 #define MASK ((1u << LOG2_32(AVGBLK)) - 1)
