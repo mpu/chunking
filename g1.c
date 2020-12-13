@@ -175,8 +175,7 @@ startchunk:
 	assert(n == max);
 	state.pos += n;
 
-	if (max != sz) {
-		// BUG in case max == sz accidentally
+	if (state.pos == MAXBLK) {
 		chunkdone(state.pos);
 		goto startchunk;
 	}
