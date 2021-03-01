@@ -24,10 +24,11 @@ chunkdone(int len)
 {
 	chunkcb(len);
 	state.pos = 0;
-	state.fp = 0;
+	state.fp = -1;
 }
 
 #define MASK ((1u << LOG2_32(AVGBLK)) - 1)
+#define UNLIKELY(x) __builtin_expect(x, 0)
 
 void
 chunk(char *buf, long sz)
@@ -38,19 +39,43 @@ chunk(char *buf, long sz)
 
 	fp = state.fp;
 	pos = state.pos;
-	for (n = 0; n <  sz; n++) {
-		if (pos == MAXBLK) {
+        for (n = 0; n + 3 < sz; n += 4) {
+            fp = (fp << 1) + geartab[buf[n] & 0xff];
+            if (UNLIKELY(!(fp & MASK))) {
+                    chunkdone(pos + n);
+                    pos = 0;
+                    fp = -1;
+            }
+            fp = (fp << 1) + geartab[buf[n+1] & 0xff];
+            if (UNLIKELY(!(fp & MASK))) {
+                    chunkdone(pos + n + 1);
+                    pos = 0;
+                    fp = -1;
+            }
+            fp = (fp << 1) + geartab[buf[n+2] & 0xff];
+            if (UNLIKELY(!(fp & MASK))) {
+                    chunkdone(pos + n + 2);
+                    pos = 0;
+                    fp = -1;
+            }
+            fp = (fp << 1) + geartab[buf[n+3] & 0xff];
+            if (UNLIKELY(!(fp & MASK))) {
+                    chunkdone(pos + n + 3);
+                    pos = 0;
+                    fp = -1;
+            }
+        }
+	for (; n <  sz; n++) {
+		if (pos == MAXBLK && 0) {
 			chunkdone(pos);
 			pos = 0;
-			fp = 0;
+			fp = -1;
 		}
 		fp = (fp << 1) + geartab[buf[n] & 0xff];
-		// fp = (fp << 1) + GearA + GearM * (buf[n] & 0xff);
-		pos++;
-		if ((fp & MASK) == MASK) {
+		if (UNLIKELY(!(fp & MASK))) {
 			chunkdone(pos);
 			pos = 0;
-			fp = 0;
+			fp = -1;
 		}
 	}
 	state.pos = pos;
@@ -66,6 +91,7 @@ void finish(void)
 void
 chunkcb(long sz)
 {
+    if(0)
 	printf("%ld\n", sz);
 }
 
