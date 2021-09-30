@@ -43,42 +43,37 @@ chunk(char *buf, long sz)
             fp = (fp << 1) + geartab[buf[n] & 0xff];
             if (UNLIKELY(!(fp & MASK))) {
                     chunkdone(pos + n);
-                    pos = 0;
+                    pos = -n;
                     fp = -1;
             }
             fp = (fp << 1) + geartab[buf[n+1] & 0xff];
             if (UNLIKELY(!(fp & MASK))) {
                     chunkdone(pos + n + 1);
-                    pos = 0;
+                    pos = -n - 1;
                     fp = -1;
             }
             fp = (fp << 1) + geartab[buf[n+2] & 0xff];
             if (UNLIKELY(!(fp & MASK))) {
                     chunkdone(pos + n + 2);
-                    pos = 0;
+                    pos = -n - 2;
                     fp = -1;
             }
             fp = (fp << 1) + geartab[buf[n+3] & 0xff];
             if (UNLIKELY(!(fp & MASK))) {
                     chunkdone(pos + n + 3);
-                    pos = 0;
+                    pos = -n - 3;
                     fp = -1;
             }
         }
 	for (; n <  sz; n++) {
-		if (pos == MAXBLK && 0) {
-			chunkdone(pos);
-			pos = 0;
-			fp = -1;
-		}
 		fp = (fp << 1) + geartab[buf[n] & 0xff];
-		if (UNLIKELY(!(fp & MASK))) {
-			chunkdone(pos);
-			pos = 0;
+		if (UNLIKELY((fp & MASK) == 0)) {
+			chunkdone(pos + n);
+			pos = -n;
 			fp = -1;
 		}
 	}
-	state.pos = pos;
+	state.pos = pos + n;
 	state.fp = fp;
 }
 
@@ -91,7 +86,7 @@ void finish(void)
 void
 chunkcb(long sz)
 {
-    if(0)
+    //if(0)
 	printf("%ld\n", sz);
 }
 
