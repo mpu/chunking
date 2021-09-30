@@ -101,8 +101,7 @@ startchunk:
                 b0 = _mm256_load_si256((__m256i*)&buf[n]);
 
 		/* permute the bytes so that shuffle_epi8 only
-		 * moves data within 128bit lanes; that's a bit
-		 * costly (Intel documents 3 cycles of latency)
+		 * moves data within 128bit lanes
 		 *
 		 * before:
 		 *  |0123|4567|89ab|cdef||ghij|klmn|opqr|stuv|
