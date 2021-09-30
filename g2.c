@@ -12,16 +12,10 @@ struct {
 	long pos;
 } state;
 
-enum {
-	GearM = 0xc7810b1b,
-	GearA = 0x4e39afed,
-};
-
 inline __attribute__((always_inline))
 static uint32_t
 gear(uint32_t fp, int b)
 {
-	// return (fp << 1) + GearA + (uint32_t)b * GearM;
 	return (fp << 1) + geartab[b];
 }
 
@@ -116,6 +110,7 @@ startblock:
 void
 chunkcb(long len)
 {
+    //if(0)
 	printf("%ld\n", len);
 }
 
